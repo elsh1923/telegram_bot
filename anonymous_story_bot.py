@@ -1,6 +1,8 @@
 import os
 import sqlite3
 import logging
+import threading
+from flask import Flask
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -27,9 +29,18 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8224578091:AAHkvhZ9DeFl4S_rRUHthfLOBJZRz7yKPAY")
 ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "885928356").split(",") if x.strip()]
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1002116750920"))
-RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")  # e.g., https://your-app.onrender.com
-PORT = int(os.getenv("PORT", "10000"))
+PORT = int(os.getenv("PORT", "8080")) # Railway/UptimeRobot port
 # ==========================================
+
+# ================= KEEP-ALIVE SERVER (FLASK) =================
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Bot is alive! 🕊️"
+
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=PORT)
 
 # ================= DATABASE =================
 def init_db():
@@ -230,7 +241,14 @@ async def handle_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =================== MAIN ===================
 
 def main():
+    # Initialize DB
     init_db()
+
+    # Start Flask keep-alive server in a background thread
+    threading.Thread(target=run_flask, daemon=True).start()
+    logger.info(f"Flask keep-alive server started on port {PORT}")
+
+    # Build Telegram bot
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -238,19 +256,9 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(CallbackQueryHandler(handle_review))
 
-    if RENDER_EXTERNAL_URL:
-        # Webhook configuration for Render
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=BOT_TOKEN,
-            webhook_url=f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}"
-        )
-        logger.info(f"Bot started with webhooks on {RENDER_EXTERNAL_URL}")
-    else:
-        # Polling for local development
-        app.run_polling()
-        logger.info("Bot started with polling")
+    # Always use polling for Railway (requested)
+    logger.info("Bot started with polling...")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
