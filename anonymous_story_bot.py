@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Load configuration from environment variables
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8224578091:AAHkvhZ9DeFl4S_rRUHthfLOBJZRz7yKPAY")
-ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "885928356").split(",") if x.strip()]
+ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "6904958031").split(",") if x.strip()]
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1002116750920"))
 PORT = int(os.getenv("PORT", "8080")) # Railway/UptimeRobot port
 # ==========================================
